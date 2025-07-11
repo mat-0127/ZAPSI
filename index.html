@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RÁPIDO Y FRESCO</title>
+  <style>
+    body { font-family: sans-serif; background: #f0fdf4; margin: 0; padding: 2rem; }
+    header {
+      background-color: #16a34a; color: white; padding: 1rem 2rem; border-radius: 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    /* Carrito fijo abajo izquierda */
+    .cart-icon {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      cursor: pointer;
+      font-size: 2rem;
+      user-select: none;
+      background: #16a34a;
+      color: white;
+      padding: 0.5rem 0.7rem;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 100;
+    }
+    .cart-badge {
+      position: absolute; top: -8px; right: -8px; background: red; color: white;
+      font-size: 12px; border-radius: 50%; padding: 2px 6px;
+    }
+    .container { max-width: 1000px; margin: auto; margin-top: 2rem; }
+    .input, .button, select {
+      width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #ccc;
+      border-radius: 0.5rem; box-sizing: border-box;
+      font-size: 1rem;
+    }
+    .button {
+      background: #16a34a; color: white; border: none; cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .button:hover { background: #15803d; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;
+    }
+    .card {
+      background: white; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .card img {
+      max-width: 100%; max-height: 150px; object-fit: contain; border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .admin-panel, .cart-panel {
+      background: #fff; border: 1px solid #ccc; border-radius: 0.75rem; padding: 1rem; margin-top: 2rem;
+      position: relative;
+      max-width: 350px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .hidden { display: none; }
+    ul { padding-left: 1rem; max-height: 200px; overflow-y: auto; }
+    ul li { margin-bottom: 0.25rem; display: flex; justify-content: space-between; align-items: center; }
+    .cart-item-text { flex-grow: 1; }
+    .btn-delete {
+      background: transparent;
+      border: none;
+      color: #cc0000;
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    /* Animación al eliminar */
+    .slide-out-left {
+      transform: translateX(-150%);
+      opacity: 0;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    /* Tabla para usuarios */
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    input.edit-user {
+      width: 90%;
+      padding: 0.25rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .btn-save {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      border-radius: 0.3rem;
+      font-size: 0.9rem;
+      margin-left: 0.3rem;
+      transition: background-color 0.3s ease;
+    }
+    .btn-save:hover { background: #15803d; }
+
+    /* Modal compra */
+    #modal-buy {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      display: none;
+    }
+    #modal-buy .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    #modal-buy h3 {
+      margin-top: 0;
+    }
+    #modal-buy label {
+      font-weight: bold;
+      margin-top: 1rem;
+      display: block;
+    }
+    #modal-buy input, #modal-buy select {
+      margin-top: 0.3rem;
+    }
+    #modal-buy button {
+      margin-top: 1.5rem;
+    }
+    #modal-buy .close-btn {
+      position: absolute;
+      top: 10px; right: 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: #666;
+    }
+    #modal-buy .close-btn:hover {
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RÁPIDO Y FRESCO</h1>
+  </header>
+
+  <!-- Ícono carrito fijo -->
+  <div class="cart-icon" onclick="toggleCart()" title="Abrir carrito">🛒
+    <span id="cart-count" class="cart-badge hidden">0</span>
+  </div>
+
+  <div class="container">
+    <div id="login">
+      <input type="email" id="email" placeholder="Correo electrónico" class="input" />
+      <input type="password" id="password" placeholder="Contraseña" class="input" />
+      <button onclick="login()" class="button">Iniciar sesión</button>
+      <p style="text-align:center; margin-top:10px;">¿No tienes cuenta? <button onclick="showRegister()" style="background:none; border:none; color:#16a34a; cursor:pointer; font-weight:bold;">Regístrate</button></p>
+    </div>
+
+    <div id="register" class="hidden">
+      <h3>Registro de nuevo usuario</h3>
+      <input type="email" id="reg-email" placeholder="Correo electrónico" class="input" />
+      <input type="password" id="reg-password" placeholder="Contraseña" class="input" />
+      <button onclick="registerUser()" class="button">Registrarse</button>
+      <p style="text-align:center; margin-top:10px;">¿Ya tienes cuenta? <button onclick="showLogin()" style="background:none; border:none; color:#16a34a; cursor:pointer; font-weight:bold;">Inicia sesión</button></p>
+    </div>
+
+    <div id="user-area" class="hidden">
+      <p id="welcome"></p>
+
+      <div id="admin-panel" class="admin-panel hidden">
+        <h3>Agregar Producto</h3>
+        <input type="text" id="product-name" placeholder="Nombre del producto" class="input" />
+        <input type="number" step="0.01" id="product-price" placeholder="Precio" class="input" />
+        <input type="text" id="product-store" placeholder="Nombre de la tienda" class="input" />
+        <input type="text" id="product-image" placeholder="URL de imagen (opcional)" class="input" />
+        <button onclick="addProduct()" class="button">Agregar</button>
+
+        <div id="user-management" style="margin-top:2rem;">
+          <h3>Gestión de usuarios</h3>
+          <table>
+            <thead>
+              <tr><th>Correo</th><th>Contraseña</th><th>Acción</th></tr>
+            </thead>
+            <tbody id="user-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="cart-panel" class="cart-panel hidden">
+        <h3>Carrito de compras</h3>
+        <ul id="cart-items"></ul>
+        <p><strong>Total: S/. <span id="total-price">0.00</span></strong></p>
+        <button class="button" onclick="openBuyModal()" style="margin-top:10px;">Comprar</button>
+      </div>
+
+      <h2>Productos</h2>
+      <div id="product-list" class="grid"></div>
+    </div>
+  </div>
+
+  <!-- Modal compra -->
+  <div id="modal-buy">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeBuyModal()" title="Cerrar">&times;</button>
+      <h3>Confirmar compra</h3>
+      <p>Total a pagar: S/. <span id="modal-total-price">0.00</span></p>
+
+      <label for="buyer-name">Nombre del encargado:</label>
+      <input type="text" id="buyer-name" placeholder="Nombre completo" class="input" />
+
+      <label for="buyer-address">Lugar o referencia de entrega:</label>
+      <input type="text" id="buyer-address" placeholder="Dirección o referencia" class="input" />
+
+      <label for="payment-method">Método de pago:</label>
+      <select id="payment-method" class="input">
+        <option value="" disabled selected>Selecciona método</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta de crédito/débito</option>
+        <option value="transferencia">Transferencia bancaria</option>
+      </select>
+
+      <button class="button" onclick="confirmPurchase()">Confirmar compra</button>
+    </div>
+  </div>
+
+<script>
+  const ADMIN_EMAIL = "sayllontaboada@gmail.com";
+
+  // Usuarios, admin ya dentro
+  const users = [
+    { email: ADMIN_EMAIL, password: "admin123" }
+  ];
+
+  const products = [
+    {
+      name: "Manzanas",
+      price: 3.5,
+      store: "Frutas del Valle",
+      image: "https://upload.wikimedia.org/wikipedia/commons/1/15/Red_Apple.jpg"
+    },
+    {
+      name: "Pan Integral",
+      price: 2.0,
+      store: "Panadería San Juan",
+      image: "https://upload.wikimedia.org/wikipedia/commons/f/f2/Bread_rolls_2010_G1.jpg"
+    },
+    {
+      name: "Leche Fresca",
+      price: 4.2,
+      store: "Lácteos Andinos",
+      image: "https://upload.wikimedia.org/wikipedia/commons/4/44/Milk_glass.jpg"
+    }
+  ];
+
+  const cart = [];
+  let currentUser = null;
+
+  function showRegister(){
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('register').classList.remove('hidden');
+  }
+  function showLogin(){
+    document.getElementById('register').classList.add('hidden');
+    document.getElementById('login').classList.remove('hidden');
+  }
+
+  function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const user = users.find(u => u.email === email && u.password === password);
+    if (!user) {
+      alert("Usuario o contraseña incorrectos");
+      return;
+    }
+
+    currentUser = user;
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("register").classList.add("hidden");
+    document.getElementById("user-area").classList.remove("hidden");
+    document.getElementById("welcome").textContent = `Bienvenido, ${email}`;
+
+    if (email === ADMIN_EMAIL) {
+      document.getElementById("admin-panel").classList.remove("hidden");
+      renderUsers();
+    } else {
+      document.getElementById("admin-panel").classList.add("hidden");
+    }
+
+    renderProducts();
+    updateCart();
+  }
+
+  function registerUser(){
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+
+    if (!email || !password) {
+      alert("Completa ambos campos");
+      return;
+    }
+    if (users.find(u => u.email === email)) {
+      alert("El usuario ya existe");
+      return;
+    }
+    users.push({ email, password });
+    alert("Usuario registrado con éxito. Ahora inicia sesión.");
+    showLogin();
+  }
+
+  function renderUsers() {
+    const tbody = document.getElementById("user-list");
+    tbody.innerHTML = "";
+    users.forEach((u, index) => {
+      const tr = document.createElement("tr");
+
+      const tdEmail = document.createElement("td");
+      const emailInput = document.createElement("input");
+      emailInput.type = "email";
+      emailInput.value = u.email;
+      emailInput.className = "edit-user";
+      emailInput.onchange = () => users[index].email = emailInput.value;
+      tdEmail.appendChild(emailInput);
+
+      const tdPass = document.createElement("td");
+      const passInput = document.createElement("input");
+      passInput.type = "text";
+      passInput.value = u.password;
+      passInput.className = "edit-user";
+      passInput.onchange = () => users[index].password = passInput.value;
+      tdPass.appendChild(passInput);
+
+      const tdAction = document.createElement("td");
+      const btnSave = document.createElement("button");
+      btnSave.textContent = "Guardar";
+      btnSave.className = "btn-save";
+      btnSave.onclick = () => alert("Cambios guardados");
+      tdAction.appendChild(btnSave);
+
+      tr.appendChild(tdEmail);
+      tr.appendChild(tdPass);
+      tr.appendChild(tdAction);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderProducts() {
+    const container = document.getElementById("product-list");
+    container.innerHTML = "";
+    products.forEach((p, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${p.image || 'https://via.placeholder.com/150'}" alt="${p.name}" />
+        <h3>${p.name}</h3>
+        <p>Precio: S/. ${p.price.toFixed(2)}</p>
+        <p>Tienda: ${p.store}</p>
+        <button class="button" onclick="addToCart(${i})">Agregar al carrito</button>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function addProduct() {
+    const name = document.getElementById("product-name").value.trim();
+    const price = parseFloat(document.getElementById("product-price").value);
+    const store = document.getElementById("product-store").value.trim();
+    const image = document.getElementById("product-image").value.trim() || "https://via.placeholder.com/150";
+
+    if (!name || isNaN(price) || !store) {
+      alert("Completa todos los campos correctamente");
+      return;
+    }
+
+    products.push({ name, price, store, image });
+    renderProducts();
+
+    document.getElementById("product-name").value = "";
+    document.getElementById("product-price").value = "";
+    document.getElementById("product-store").value = "";
+    document.getElementById("product-image").value = "";
+  }
+
+  function addToCart(index) {
+    cart.push(products[index]);
+    updateCart();
+  }
+
+  function toggleCart() {
+    const panel = document.getElementById("cart-panel");
+    panel.classList.toggle("hidden");
+  }
+
+  function updateCart() {
+    const list = document.getElementById("cart-items");
+    const badge = document.getElementById("cart-count");
+    list.innerHTML = "";
+    let total = 0;
+
+    cart.forEach((item, i) => {
+      total += item.price;
+      const li = document.createElement("li");
+
+      const span = document.createElement("span");
+      span.className = "cart-item-text";
+      span.textContent = `${item.name} - S/. ${item.price.toFixed(2)}`;
+
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "btn-delete";
+      btnDelete.title = "Eliminar";
+      btnDelete.textContent = "🗑️";
+
+      btnDelete.onclick = () => {
+        li.classList.add("slide-out-left");
+        setTimeout(() => {
+          cart.splice(i, 1);
+          updateCart();
+        }, 400);
+      };
+
+      li.appendChild(span);
+      li.appendChild(btnDelete);
+      list.appendChild(li);
+    });
+
+    document.getElementById("total-price").textContent = total.toFixed(2);
+
+    badge.textContent = cart.length;
+    badge.classList.toggle("hidden", cart.length === 0);
+  }
+
+  // Modal compra
+  function openBuyModal(){
+    if(cart.length === 0){
+      alert("Tu carrito está vacío");
+      return;
+    }
+    document.getElementById("modal-total-price").textContent = cart.reduce((acc, p) => acc + p.price, 0).toFixed(2);
+    document.getElementById("buyer-name").value = "";
+    document.getElementById("buyer-address").value = "";
+    document.getElementById("payment-method").value = "";
+    document.getElementById("modal-buy").style.display = "flex";
+  }
+  function closeBuyModal(){
+    document.getElementById("modal-buy").style.display = "none";
+  }
+  function confirmPurchase(){
+    const name = document.getElementById("buyer-name").value.trim();
+    const address = document.getElementById("buyer-address").value.trim();
+    const payment = document.getElementById("payment-method").value;
+
+    if(!name || !address || !payment){
+      alert("Por favor completa todos los campos");
+      return;
+    }
+
+    alert(`Gracias por tu compra, ${name}!\nTotal: S/. ${document.getElementById("modal-total-price").textContent}\nEntrega en: ${address}\nPago: ${payment}`);
+
+    // Vaciar carrito
+    cart.length = 0;
+    updateCart();
+    closeBuyModal();
+  }
+</script>
+</body>
+</html>
